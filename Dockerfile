@@ -1,14 +1,21 @@
-# Use Java 21
-FROM eclipse-temurin:21-jdk
+# -------- BUILD STAGE --------
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY . .
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# Build the application
-RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Run the Spring Boot app
-CMD ["java", "-jar", "target/*.jar"]
+# -------- RUN STAGE --------
+FROM eclipse-temurin:21-jdk
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
+EXPOSE 8080
+
+CMD ["java", "-jar", "app.jar"]
